@@ -1,0 +1,118 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096M -Dorg.gradle.daemon=false -Dorg.gradle.parallel=true -Dorg.gradle.caching=true"
+
+
+jobs:
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Gradle setup
+        uses: ./.github/actions/gradle-setup
+
+      - name: Build Android debug APK
+        run: ./gradlew :android:assembleDebug
+
+      - name: Upload Android debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: sample/android/build/outputs/apk/debug/*.apk
+
+  build-desktop:
+    name: Build Desktop
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Gradle setup
+        uses: ./.github/actions/gradle-setup
+
+      - name: Build Desktop distribution
+        run: ./gradlew :desktop:packageDistributionForCurrentOS
+
+      - name: Upload Desktop distribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-dist
+          path: sample/desktop/build/compose/binaries/main/app/**/*
+
+  build-web:
+    name: Build Web (Wasm)
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Gradle setup
+        uses: ./.github/actions/gradle-setup
+
+      - name: Build Web distribution
+        run: ./gradlew :web:wasmJsBrowserDistribution
+
+      - name: Upload Web distribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: sample/web/build/dist/**/*
+  build-ios:
+    name: Build iOS simulator app
+    runs-on: macos-latest
+    needs: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Gradle setup
+        uses: ./.github/actions/gradle-setup
+
+      - name: Build iOS simulator app
+        run: |
+          xcodebuild build \
+          -workspace sample/ios/iosSample.xcworkspace \
+          -configuration Debug \
+          -scheme iosSample \
+          -sdk iphonesimulator \
+          -derivedDataPath build/ios-derived-data \
+          -verbose
+
+      - name: Upload app folder
+        uses: actions/upload-artifact@v4
+        with:
+          name: iphonesimulator-app
+          path: build/ios-derived-data/Build/Products/Debug-iphonesimulator/*
+
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Gradle setup
+        uses: ./.github/actions/gradle-setup
+
+      - name: Run unit tests
+        run: ./gradlew jvmTest
+
+      - name: Upload test reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: "**/build/reports/tests/"
