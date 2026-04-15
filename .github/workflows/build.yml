@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [ feature/agp9 ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
