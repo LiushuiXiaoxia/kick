@@ -3,9 +3,19 @@ import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinMultiplatform
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
 
+plugins {
+    signing
+}
+
+val signingKey: String? = System.getenv("SIGNING_SECRET_KEY")
+val signingPassword: String? = System.getenv("SIGNING_PASSWORD")
+val hasSigningCredentials = !signingKey.isNullOrBlank() && !signingPassword.isNullOrBlank()
+
 configure<MavenPublishBaseExtension> {
     publishToMavenCentral()
-    signAllPublications()
+    if (hasSigningCredentials) {
+        signAllPublications()
+    }
 
     coordinates("ru.bartwell.kick", project.name, extra["libraryVersionName"] as String)
 
@@ -61,9 +71,7 @@ configure<MavenPublishBaseExtension> {
 }
 
 configure<SigningExtension> {
-    val signingKey: String? = System.getenv("SIGNING_SECRET_KEY")
-    val signingPassword: String? = System.getenv("SIGNING_PASSWORD")
-    if (!signingKey.isNullOrBlank() && !signingPassword.isNullOrBlank()) {
+    if (hasSigningCredentials) {
         useInMemoryPgpKeys(signingKey, signingPassword)
     } else {
         logger.warn("SIGNING_SECRET_KEY/SIGNING_PASSWORD is empty")
