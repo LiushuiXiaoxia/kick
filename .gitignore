@@ -15,3 +15,5 @@ xcuserdata
 /sample/shared/schemas/*
 /.gradle-home/*
 .claude/settings.local.json
+.venv
+scripts/oss_config.py
