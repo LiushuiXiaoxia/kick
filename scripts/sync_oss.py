@@ -20,6 +20,7 @@ DEFAULT_SOURCE_DIR = Path(
     getattr(oss_config, "SOURCE_DIR", "~/.m2/repository/ru/bartwell/kick"),
 ).expanduser()
 DEFAULT_PREFIX = getattr(oss_config, "PREFIX", "")
+DEFAULT_REMOTE_PATH = getattr(oss_config, "REMOTE_PATH", "ru/bartwell/kick")
 DEFAULT_PUBLIC_URL = getattr(oss_config, "PUBLIC_URL", "")
 
 
@@ -88,11 +89,10 @@ def normalize_prefix(prefix: str) -> str:
     return prefix.strip("/")
 
 
-def build_object_key(prefix: str, source_root: Path, file_path: Path) -> str:
+def build_object_key(prefix: str, remote_path: str, source_root: Path, file_path: Path) -> str:
     relative_path = file_path.relative_to(source_root).as_posix()
-    if not prefix:
-        return relative_path
-    return f"{prefix}/{relative_path}"
+    parts = [prefix.strip("/"), remote_path.strip("/"), relative_path]
+    return "/".join(part for part in parts if part)
 
 
 def build_public_url(object_key: str) -> str:
@@ -121,6 +121,7 @@ def main() -> int:
     args = parse_args()
     source_root = args.source.expanduser().resolve()
     prefix = normalize_prefix(args.prefix)
+    remote_path = DEFAULT_REMOTE_PATH.strip("/")
 
     if not source_root.exists():
         print(f"Source directory does not exist: {source_root}", file=sys.stderr)
@@ -140,7 +141,7 @@ def main() -> int:
     skipped = 0
 
     for file_path in files:
-        object_key = build_object_key(prefix, source_root, file_path)
+        object_key = build_object_key(prefix, remote_path, source_root, file_path)
         file_size = file_path.stat().st_size
         public_url = build_public_url(object_key)
 
